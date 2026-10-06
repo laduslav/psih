@@ -1,0 +1,60 @@
+{
+  "rootFolder": "c:\\Users\\v.dyadyura\\Documents\\psih",
+  "analyzedAt": "2026-09-01",
+  "project": {
+    "name": "mip-demo-app",
+    "type": "Vanilla JavaScript SPA",
+    "framework": "Vite",
+    "css": "Vanilla CSS",
+    "packageManager": "npm"
+  },
+  "entryPoints": [
+    {
+      "path": "index.html",
+      "role": "HTML entry point"
+    },
+    {
+      "path": "app.js",
+      "role": "Application data and DOM interaction logic"
+    }
+  ],
+  "rootStructure": [
+    { "name": "index.html", "type": "file" },
+    { "name": "app.js", "type": "file" },
+    { "name": "app_backup.js", "type": "file", "role": "vanilla logic backup" },
+    { "name": "README.md", "type": "file" },
+    { "name": "overview.json", "type": "file" },
+    { "name": "overview_architecture.puml", "type": "file" },
+    { "name": "package.json", "type": "file" },
+    { "name": "vite.config.js", "type": "file" },
+    { "name": "public", "type": "directory" },
+    { "name": "public/pers", "type": "directory", "files": ["brave.png", "ilia14.jpg", "lion.png", "panda.png", "sergei31.jpg", "valeria19.jpg"] },
+    { "name": "'", "type": "file", "size": 0, "role": "unclassified existing artifact" }
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "runtime": [],
+    "development": ["vite"]
+  },
+  "capabilities": {
+    "resultSharing": {
+      "screens": ["archetype", "career", "therapy"],
+      "channels": ["Web Share API", "Telegram", "VK", "Clipboard API"],
+      "canonicalUrl": "window.location.href",
+      "externalDependencies": []
+    }
+  },
+  "cleanup": {
+    "removedLegacySourceCount": 14,
+    "archiveStoredOutsideRepository": true
+  },
+  "validation": {
+    "rootEntryImports": ["app.js"],
+    "legacySourceDirectoryPresent": false,
+    "lastChecked": "2026-09-01"
+  }
+}
