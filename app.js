@@ -1349,9 +1349,15 @@ function resolveAvatarSrc(avatarPath) {
     if (!fileName) return '';
 
     const encodedFileName = encodeURIComponent(fileName);
-    return window.location.protocol === 'file:'
-        ? `./public/pers/${encodedFileName}`
-        : `/pers/${encodedFileName}`;
+    if (window.location.protocol === 'file:') {
+        return `./public/pers/${encodedFileName}`;
+    }
+    // Относительный путь от корня сайта — работает и на GitHub Pages
+    // (https://username.github.io/имя-репозитория/pers/...), и на домене.
+    const basePath = window.location.pathname.endsWith('/')
+        ? window.location.pathname
+        : window.location.pathname.replace(/[^/]*$/, '');
+    return `${basePath}pers/${encodedFileName}`;
 }
 
 function setAvatarSources(root) {
