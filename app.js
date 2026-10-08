@@ -56,10 +56,10 @@ const archetypesData = {
         recommendation: 'Твой путь - сцена и публичные выступления. Развивайте свои артистические способности и лидерские качества.',
         examples: [
             {
-                name: 'Король Джулиан',
-                source: '«Мадагаскар»',
-                image: 'julian.png',
-                description: 'Рожден для сцены, держит всё внимание на себе и превращает любое событие в грандиозную вечеринку.'
+                name: 'Кузко',
+                source: '«Похождения императора»',
+                image: 'kuzko.png',
+                description: 'Яркий, экспрессивный и на 100% уверенный в своей неотразимости.'
             },
             {
                 name: 'Капитан Джек Воробей',
@@ -69,10 +69,10 @@ const archetypesData = {
                 
             },
             {
-                name: 'Кузко',
-                source: '«Похождения императора»',
-                image: 'kuzko.png',
-                description: 'Яркий, экспрессивный и на 100% уверенный в своей неотразимости.'
+                name: 'Король Джулиан',
+                source: '«Мадагаскар»',
+                image: 'julian.png',
+                description: 'Рожден для сцены, держит всё внимание на себе и превращает любое событие в грандиозную вечеринку.'
             }
         ]
     }
@@ -282,13 +282,76 @@ let novelScores = { psychoanalytic: 0, gestalt: 0, cbt: 0 };
 let currentPatient = 0;
 let novelAnswers = {};
 
+// ===== АТМОСФЕРНОЕ ВИДЕО =====
+const MEDIA_BASE_CANDIDATES = ['pers/', 'public/pers/'];
+
+function resolveMediaSrc(fileName) {
+    if (!fileName) return '';
+    const base = getDocumentBaseUrl();
+    const candidates = MEDIA_BASE_CANDIDATES.map(prefix => `${base}${prefix}${encodeURIComponent(fileName)}`);
+    if (window.__mediaBaseCandidate != null && candidates[window.__mediaBaseCandidate]) {
+        return candidates[window.__mediaBaseCandidate];
+    }
+    return candidates[0];
+}
+
+function initBackgroundVideo() {
+    const video = document.getElementById('background-video');
+    if (!video || video.dataset.bound === 'true') return;
+    video.dataset.bound = 'true';
+
+    const fileName = video.dataset.mediaFile;
+    if (!fileName) return;
+    video.src = resolveMediaSrc(fileName);
+
+    const showFallback = () => {
+        const wrap = video.parentElement;
+        if (!wrap) return;
+        video.remove();
+        if (wrap.querySelector('.background-video-fallback')) return;
+        const fallback = document.createElement('div');
+        fallback.className = 'background-video-fallback';
+        fallback.setAttribute('aria-hidden', 'true');
+        fallback.textContent = '☁️';
+        wrap.appendChild(fallback);
+    };
+
+    video.addEventListener('error', () => {
+        const base = getDocumentBaseUrl();
+        const candidates = MEDIA_BASE_CANDIDATES.map(prefix => `${base}${prefix}${encodeURIComponent(fileName)}`);
+        const currentIndex = candidates.indexOf(video.src);
+        if (currentIndex >= 0 && currentIndex < candidates.length - 1) {
+            window.__mediaBaseCandidate = currentIndex + 1;
+            video.src = candidates[currentIndex + 1];
+            video.load();
+            return;
+        }
+        showFallback();
+    });
+
+    const tryPlay = () => {
+        const playPromise = video.play();
+        if (playPromise && playPromise.catch) playPromise.catch(() => {});
+    };
+    tryPlay();
+    video.addEventListener('canplay', tryPlay, { once: true });
+
+    // Экономия ресурсов: не показываем видео при печати.
+    if (window.matchMedia) {
+        const mq = window.matchMedia('print');
+        const handlePrint = () => { if (mq.matches) video.pause(); else tryPlay(); };
+        if (mq.addEventListener) mq.addEventListener('change', handlePrint);
+        else if (mq.addListener) mq.addListener(handlePrint);
+    }
+}
+
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
-    document.body.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
     showSection('hero');
     initArchetypeTest();
     initCareerTest();
     initNovel();
+    initBackgroundVideo();
 });
 
 // ===== НАВИГАЦИЯ =====
@@ -310,7 +373,7 @@ function showSection(sectionId) {
         document.getElementById(sections[sectionId]).classList.add('active');
     }
     
-    const buttons = document.querySelectorAll('.nav-btn');
+    const buttons = document.querySelectorAll('.nav .nav-btn');
     const buttonIndex = { 'hero': 0, 'archetypes': 1, 'career': 2, 'simulation': 3, 'editorial': 4 };
     if (buttonIndex[sectionId] !== undefined) {
         buttons[buttonIndex[sectionId]].classList.add('active');
@@ -1344,20 +1407,36 @@ function getAvatarFileName(avatarPath) {
     return String(avatarPath || '').split(/[\\/]/).pop() || '';
 }
 
+// Кандидаты путей к папке с картинками. Порядок важен: сначала пробуем
+// вариант для GitHub Pages (корень репозитория, файлы лежат в /pers/...),
+// затем вариант для локальной разработки через Vite (файлы из /public/pers/...).
+const AVATAR_BASE_CANDIDATES = ['pers/', 'public/pers/'];
+
+function getDocumentBaseUrl() {
+    // document.baseURI корректно учитывает <base href="..."> и подпапку
+    // репозитория на GitHub Pages (https://user.github.io/repo/).
+    try {
+        return new URL('.', document.baseURI || window.location.href).href;
+    } catch (e) {
+        return window.location.href.replace(/[^/]*$/, '');
+    }
+}
+
 function resolveAvatarSrc(avatarPath) {
     const fileName = getAvatarFileName(avatarPath);
     if (!fileName) return '';
 
     const encodedFileName = encodeURIComponent(fileName);
-    if (window.location.protocol === 'file:') {
-        return `./public/pers/${encodedFileName}`;
+    const base = getDocumentBaseUrl();
+    const candidates = AVATAR_BASE_CANDIDATES.map(prefix => `${base}${prefix}${encodedFileName}`);
+
+    // Если удачный базовый путь уже подобран для другого изображения,
+    // сразу используем его — это ускоряет отрисовку остальных картинок.
+    if (window.__avatarBaseCandidate != null) {
+        const preferred = candidates[window.__avatarBaseCandidate];
+        if (preferred) return preferred;
     }
-    // Относительный путь от корня сайта — работает и на GitHub Pages
-    // (https://username.github.io/имя-репозитория/pers/...), и на домене.
-    const basePath = window.location.pathname.endsWith('/')
-        ? window.location.pathname
-        : window.location.pathname.replace(/[^/]*$/, '');
-    return `${basePath}pers/${encodedFileName}`;
+    return candidates[0];
 }
 
 function setAvatarSources(root) {
@@ -1379,6 +1458,25 @@ function bindAvatarFallbacks(root) {
 function handleAvatarError(event) {
     const image = event.target;
     if (!image || !image.parentElement) return;
+
+    // Если текущий src не найден (404), пробуем следующий кандидат пути
+    // (например, при открытии через file:// или при другом способе деплоя).
+    const fileName = getAvatarFileName(image.dataset.avatarFile);
+    if (fileName) {
+        const base = getDocumentBaseUrl();
+        const candidates = AVATAR_BASE_CANDIDATES.map(prefix => `${base}${prefix}${encodeURIComponent(fileName)}`);
+        const currentIndex = candidates.indexOf(image.src);
+        if (currentIndex >= 0 && currentIndex < candidates.length - 1) {
+            image.dataset.fallbackTried = String(Number(image.dataset.fallbackTried || 0) + 1);
+            if (Number(image.dataset.fallbackTried) <= candidates.length) {
+                window.__avatarBaseCandidate = currentIndex + 1;
+                image.removeEventListener('error', handleAvatarError);
+                image.addEventListener('error', handleAvatarError, { once: true });
+                image.src = candidates[currentIndex + 1];
+                return;
+            }
+        }
+    }
 
     const fallback = document.createElement('span');
     fallback.className = 'avatar-fallback';
