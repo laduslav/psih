@@ -1,1 +1,5 @@
-(empty)
+# Dependencies
+node_modules/
+
+# Lock files (optional, but often ignored if not needed for reproducible builds in this context)
+package-lock.json

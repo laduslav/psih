@@ -56,10 +56,10 @@ const archetypesData = {
         recommendation: 'Твой путь - сцена и публичные выступления. Развивайте свои артистические способности и лидерские качества.',
         examples: [
             {
-                name: 'Король Джулиан',
-                source: '«Мадагаскар»',
-                image: 'julian.png',
-                description: 'Рожден для сцены, держит всё внимание на себе и превращает любое событие в грандиозную вечеринку.'
+                name: 'Кузко',
+                source: '«Похождения императора»',
+                image: 'kuzko.png',
+                description: 'Яркий, экспрессивный и на 100% уверенный в своей неотразимости.'
             },
             {
                 name: 'Капитан Джек Воробей',
@@ -69,10 +69,10 @@ const archetypesData = {
                 
             },
             {
-                name: 'Кузко',
-                source: '«Похождения императора»',
-                image: 'kuzko.png',
-                description: 'Яркий, экспрессивный и на 100% уверенный в своей неотразимости.'
+                name: 'Король Джулиан',
+                source: '«Мадагаскар»',
+                image: 'julian.png',
+                description: 'Рожден для сцены, держит всё внимание на себе и превращает любое событие в грандиозную вечеринку.'
             }
         ]
     }
@@ -295,14 +295,26 @@ function resolveMediaSrc(fileName) {
     return candidates[0];
 }
 
-function initAmbienceVideo() {
-    const video = document.getElementById('ambience-video');
+function initBackgroundVideo() {
+    const video = document.getElementById('background-video');
     if (!video || video.dataset.bound === 'true') return;
     video.dataset.bound = 'true';
 
     const fileName = video.dataset.mediaFile;
     if (!fileName) return;
     video.src = resolveMediaSrc(fileName);
+
+    const showFallback = () => {
+        const wrap = video.parentElement;
+        if (!wrap) return;
+        video.remove();
+        if (wrap.querySelector('.background-video-fallback')) return;
+        const fallback = document.createElement('div');
+        fallback.className = 'background-video-fallback';
+        fallback.setAttribute('aria-hidden', 'true');
+        fallback.textContent = '☁️';
+        wrap.appendChild(fallback);
+    };
 
     video.addEventListener('error', () => {
         const base = getDocumentBaseUrl();
@@ -314,52 +326,32 @@ function initAmbienceVideo() {
             video.load();
             return;
         }
-        const wrap = video.parentElement;
-        if (wrap) {
-            const notice = document.createElement('p');
-            notice.style.cssText = 'padding: 20px; text-align: center; background: #FFEEEE; color: #666666; margin: 0;';
-            notice.textContent = 'Видео временно недоступно.';
-            video.remove();
-            wrap.appendChild(notice);
-        }
-    }, { once: false });
-
-    video.addEventListener('click', () => {
-        if (video.paused) {
-            const playPromise = video.play();
-            if (playPromise && playPromise.catch) playPromise.catch(() => {});
-        } else {
-            video.pause();
-        }
+        showFallback();
     });
 
-    // Запуск при появлении секции может быть заблокирован политикой
-    // автоплея — поэтому пробуем тихо запустить и обрабатываем отказ.
-    const tryAutoplay = () => {
+    const tryPlay = () => {
         const playPromise = video.play();
         if (playPromise && playPromise.catch) playPromise.catch(() => {});
     };
-    if ('IntersectionObserver' in window) {
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) tryAutoplay();
-                else video.pause();
-            });
-        }, { threshold: 0.3 });
-        observer.observe(video);
-    } else {
-        tryAutoplay();
+    tryPlay();
+    video.addEventListener('canplay', tryPlay, { once: true });
+
+    // Экономия ресурсов: не показываем видео при печати.
+    if (window.matchMedia) {
+        const mq = window.matchMedia('print');
+        const handlePrint = () => { if (mq.matches) video.pause(); else tryPlay(); };
+        if (mq.addEventListener) mq.addEventListener('change', handlePrint);
+        else if (mq.addListener) mq.addListener(handlePrint);
     }
 }
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
-    document.body.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
     showSection('hero');
     initArchetypeTest();
     initCareerTest();
     initNovel();
-    initAmbienceVideo();
+    initBackgroundVideo();
 });
 
 // ===== НАВИГАЦИЯ =====
@@ -383,7 +375,7 @@ function showSection(sectionId) {
     }
     
     const buttons = document.querySelectorAll('.nav .nav-btn');
-    const buttonIndex = { 'hero': 0, 'archetypes': 1, 'career': 2, 'simulation': 3, 'ambience': 4, 'editorial': 5 };
+    const buttonIndex = { 'hero': 0, 'archetypes': 1, 'career': 2, 'simulation': 3, 'editorial': 4 };
     if (buttonIndex[sectionId] !== undefined) {
         buttons[buttonIndex[sectionId]].classList.add('active');
     }
