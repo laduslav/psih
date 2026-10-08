@@ -366,6 +366,7 @@ function showSection(sectionId) {
         'archetypes': 'archetypes-section',
         'career': 'career-section',
         'simulation': 'simulation-section',
+        'ambience': 'ambience-section',
         'editorial': 'editorial-section'
     };
     
